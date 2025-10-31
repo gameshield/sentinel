@@ -1,0 +1,4 @@
+name: gameshield-sentinel
+main: io.gameshield.sentinel.bungee.SentinelBungee
+version: 1.0.0
+author: milansky
