@@ -16,6 +16,11 @@ public final class MergedAddressSpace implements AddressSubnet {
     private final AddressSubnet[] subnets;
 
     @Override
+    public int getMaskBits() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public long size() {
         return Arrays.stream(subnets).mapToLong(AddressSubnet::size).sum();
     }

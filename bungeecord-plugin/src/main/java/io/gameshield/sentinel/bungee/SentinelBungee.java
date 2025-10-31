@@ -20,6 +20,8 @@ public final class SentinelBungee extends Plugin {
         val subnetLoader = GameShieldSubnetLoader.create();
         val addressSpace = MergedAddressSpace.create(subnetLoader.loadSubnets());
 
+        log.info("Loaded {} addresses", addressSpace.size());
+
         try {
             val unsafe = bungee.unsafe();
 

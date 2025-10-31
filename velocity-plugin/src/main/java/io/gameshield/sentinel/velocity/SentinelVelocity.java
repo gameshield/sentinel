@@ -55,6 +55,8 @@ public final class SentinelVelocity {
         val subnetLoader = GameShieldSubnetLoader.create();
         val addressSpace = MergedAddressSpace.create(subnetLoader.loadSubnets());
 
+        log.info("Loaded {} addresses", addressSpace.size());
+
         holder.set(SentinelVelocityChannelInitializer.create(holder.get(), addressSpace));
     }
 }

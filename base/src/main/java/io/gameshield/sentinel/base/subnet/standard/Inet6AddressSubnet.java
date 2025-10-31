@@ -109,6 +109,11 @@ public final class Inet6AddressSubnet implements AddressSubnet {
     int maskBits;
 
     @Override
+    public int getMaskBits() {
+        return maskBits;
+    }
+
+    @Override
     public long size() {
         final int hostBits = FULL_BITS - maskBits;
 

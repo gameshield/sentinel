@@ -74,6 +74,11 @@ public final class Inet4AddressSubnet implements AddressSubnet {
     int address, mask, maskBits;
 
     @Override
+    public int getMaskBits() {
+        return maskBits;
+    }
+
+    @Override
     public long size() {
         return 1L << (32 - maskBits);
     }
