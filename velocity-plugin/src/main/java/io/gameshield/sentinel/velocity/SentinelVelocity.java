@@ -17,7 +17,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
 @Slf4j
-@Plugin(id = "gameshield-sentinel", name = "gameshield-sentinel", version = "1.0.0")
+@Plugin(id = "gameshield-sentinel", name = "gameshield-sentinel", version = "1.0.1")
 public final class SentinelVelocity {
     private static final VarHandle VH_CONNECTION_MANAGER;
 
