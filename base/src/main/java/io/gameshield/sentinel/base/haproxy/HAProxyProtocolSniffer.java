@@ -10,6 +10,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.function.BiConsumer;
 
 /**
@@ -17,8 +18,15 @@ import java.util.function.BiConsumer;
  */
 @RequiredArgsConstructor(staticName = "create")
 public final class HAProxyProtocolSniffer extends ChannelInboundHandlerAdapter {
-    private final BiConsumer<ChannelHandlerContext, InetSocketAddress> handler;
+    private static final byte[] PROXY_V1_PREFIX = "PROXY".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] PROXY_V2_PREFIX = new byte[] {
+            0x0D, 0x0A, 0x0D, 0x0A,
+            0x00, 0x0D, 0x0A, 0x51,
+            0x55, 0x49, 0x54, 0x0A
+    };
+    private static final byte[] PROXY_HEALTHCHECK = "INVALID_PROXY_HEADER\r\n".getBytes(StandardCharsets.US_ASCII);
 
+    private final BiConsumer<ChannelHandlerContext, InetSocketAddress> handler;
     private boolean first = true;
 
     @Override
@@ -28,9 +36,14 @@ public final class HAProxyProtocolSniffer extends ChannelInboundHandlerAdapter {
                 val byteBuf = (ByteBuf) msg;
                 first = false;
 
+                if (startsWith(byteBuf, PROXY_HEALTHCHECK)) {
+                    context.channel().close();
+                    return;
+                }
+
                 val pipeline = context.pipeline();
 
-                if (looksLikeProxy(byteBuf)) {
+                if (startsWith(byteBuf, PROXY_V1_PREFIX) || startsWith(byteBuf, PROXY_V2_PREFIX)) {
                     pipeline.addAfter(context.name(), "gs-haproxy-decoder", new HAProxyMessageDecoder());
                     pipeline.addAfter("gs-haproxy-decoder", "gs-haproxy-handler", new HaProxyAddressHandler(handler));
                 }
@@ -42,24 +55,14 @@ public final class HAProxyProtocolSniffer extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private static boolean looksLikeProxy(final @NotNull ByteBuf buf) {
-        int idx = buf.readerIndex();
-        int r = buf.readableBytes();
+    private static boolean startsWith(final @NotNull ByteBuf buf, final byte[] prefix) {
+        val readable = buf.readableBytes();
+        if (readable < prefix.length) return false;
 
-        if (r >= 5 &&
-                buf.getByte(idx) == 'P' &&
-                buf.getByte(idx + 1) == 'R' &&
-                buf.getByte(idx + 2) == 'O' &&
-                buf.getByte(idx + 3) == 'X' &&
-                buf.getByte(idx + 4) == 'Y') return true;
+        val idx = buf.readerIndex();
+        for (int i = 0; i < prefix.length; i++) if (buf.getByte(idx + i) != prefix[i]) return false;
 
-        return r >= 12 &&
-                buf.getByte(idx) == 0x0D && buf.getByte(idx + 1) == 0x0A &&
-                buf.getByte(idx + 2) == 0x0D && buf.getByte(idx + 3) == 0x0A &&
-                buf.getByte(idx + 4) == 0x00 && buf.getByte(idx + 5) == 0x0D &&
-                buf.getByte(idx + 6) == 0x0A && buf.getByte(idx + 7) == 'Q' &&
-                buf.getByte(idx + 8) == 'U' && buf.getByte(idx + 9) == 'I' &&
-                buf.getByte(idx + 10) == 'T' && buf.getByte(idx + 11) == 0x0A;
+        return true;
     }
 
     @RequiredArgsConstructor(staticName = "create")
